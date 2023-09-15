@@ -15,26 +15,54 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
         
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewPerson))
         
+        /* IF WE USE NSCODING
         let defaults = UserDefaults.standard
+         
         if let savedPeople = defaults.object(forKey: "people") as? Data {
             if let decodedPeople = try? NSKeyedUnarchiver.unarchivedObject(ofClasses: [NSArray.self, Person.self, NSString.self], from: savedPeople) as? [Person] {
                 people = decodedPeople
             }
         }
+        */
+        
+        let defaults = UserDefaults.standard
+
+        if let savedPeople = defaults.object(forKey: "people") as? Data {
+            let jsonDecoder = JSONDecoder()
+            do {
+                people = try jsonDecoder.decode([Person].self, from: savedPeople)
+            } catch {
+                print("Failed to load people")
+            }
+        }
     }
     
+    /* IF WE USE NSCODING
     func save() {
         if let savedData = try? NSKeyedArchiver.archivedData(withRootObject: people, requiringSecureCoding: false) {
             let defaults = UserDefaults.standard
             defaults.set(savedData, forKey: "people")
         }
     }
+    */
+    
+    func save() {
+        let jsonEncoder = JSONEncoder()
+        if let savedData = try? jsonEncoder.encode(people) {
+            let defaults = UserDefaults.standard
+            defaults.set(savedData, forKey: "people")
+        } else {
+            print("Failed to save people.")
+        }
+    }
     
     @objc func addNewPerson() {
         let picker = UIImagePickerController()
-//        if UIImagePickerController.isSourceTypeAvailable(.camera) {
-//            picker.sourceType = .camera
-//        }
+        /*
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            picker.sourceType = .camera
+        }
+        */
         picker.allowsEditing = true
         picker.delegate = self
         present(picker, animated: true)
