@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import LocalAuthentication
 
 class ViewController: UICollectionViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     var people = [Person]()
@@ -25,15 +26,48 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
         }
         */
         
+        authenticate()
+    }
+    
+    func getSavedPeople() {
         let defaults = UserDefaults.standard
 
         if let savedPeople = defaults.object(forKey: "people") as? Data {
             let jsonDecoder = JSONDecoder()
             do {
                 people = try jsonDecoder.decode([Person].self, from: savedPeople)
+                collectionView.reloadData()
             } catch {
                 print("Failed to load people")
             }
+        }
+    }
+    
+    func authenticate() {
+        people = []
+        let context = LAContext()
+        var error: NSError?
+        
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            let reason = "Identify yourself!"
+            
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) {
+                [weak self] success, authenticationError in
+                
+                DispatchQueue.main.async {
+                    if success {
+                        self?.getSavedPeople()
+                    } else {
+                        let ac = UIAlertController(title: "Authentication failed", message: "You could not be verified; please try again.", preferredStyle: .alert)
+                        ac.addAction(UIAlertAction(title: "OK", style: .default))
+                        self?.present(ac, animated: true)
+                    }
+                }
+            }
+        } else {
+            let ac = UIAlertController(title: "Biometry unavailable", message: "Your device is not configured for biometric authentication.", preferredStyle: .alert)
+            ac.addAction(UIAlertAction(title: "OK", style: .default))
+            self.present(ac, animated: true)
         }
     }
     
